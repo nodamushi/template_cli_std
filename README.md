@@ -2,6 +2,10 @@
 
 A template for building synchronous CLI applications with Rust standard library.
 
+## License
+
+This work is released under Unlicense or CC0 (waiving all rights, as much as legally possible in Japan). However, I personally request that you **delete the Git history before using this template**.
+
 ## Overview
 
 This project serves as a starting template for developing interactive command-line applications using synchronous I/O. This is the synchronous counterpart to `template_tokio`.
@@ -80,8 +84,3 @@ The following commands will exit the application:
 - `q`
 - Ctrl+C
 - Ctrl+D
-
-
-## License
-
-This template is free to use and modify.
