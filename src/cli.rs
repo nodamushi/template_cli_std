@@ -1,6 +1,6 @@
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
-use std::io::{IsTerminal, Write};
+use std::io::IsTerminal;
 
 /// Exit command.
 const EXIT_COMMANDS: &[&str] = &["exit", "quit", "q"];
@@ -14,6 +14,11 @@ pub struct Cli {
 #[derive(Clone)]
 pub struct Printer {
     is_terminal: bool,
+}
+
+pub struct ExtPrinter {
+    is_terminal: bool,
+    printer: Box<dyn rustyline::ExternalPrinter + Send>,
 }
 
 #[allow(dead_code)]
@@ -36,15 +41,13 @@ impl Cli {
             let readline = self.rl.readline(&self.prompt);
 
             let mut args = match readline {
-                Ok(ref line) => {
-                    match shell_words::split(line) {
-                        Ok(x) => x,
-                        Err(e) => {
-                            self.printer.errln(format!("[Input Error] {e}"));
-                            continue;
-                        }
+                Ok(ref line) => match shell_words::split(line) {
+                    Ok(x) => x,
+                    Err(e) => {
+                        self.printer.errln(format!("[Input Error] {e}"));
+                        continue;
                     }
-                }
+                },
                 Err(ReadlineError::Eof) => return None,
                 Err(ReadlineError::Interrupted) => return None,
                 Err(e) => {
@@ -71,6 +74,14 @@ impl Cli {
     pub fn get_printer(&self) -> Printer {
         self.printer.clone()
     }
+
+    pub fn create_external_printer(&mut self) -> Result<ExtPrinter, ReadlineError> {
+        let printer = Box::new(self.rl.create_external_printer()?);
+        Ok(ExtPrinter {
+            is_terminal: self.printer.is_terminal,
+            printer,
+        })
+    }
 }
 
 #[allow(dead_code)]
@@ -83,7 +94,6 @@ impl Printer {
     #[inline]
     pub fn print(&self, msg: impl AsRef<str>) {
         print!("{}", msg.as_ref());
-        let _ = std::io::stdout().flush();
     }
 
     #[inline]
@@ -102,7 +112,6 @@ impl Printer {
         } else {
             eprint!("{}", msg.as_ref());
         }
-        let _ = std::io::stderr().flush();
     }
 
     #[inline]
@@ -121,6 +130,54 @@ impl Printer {
         } else {
             eprint!("{}", msg.as_ref());
         }
-        let _ = std::io::stderr().flush();
+    }
+}
+
+#[allow(dead_code)]
+impl ExtPrinter {
+    #[inline]
+    pub fn println(&mut self, msg: impl AsRef<str>) {
+        let _ = self.printer.print(format!("{}\n", msg.as_ref()));
+    }
+
+    #[inline]
+    pub fn print(&mut self, msg: impl AsRef<str>) {
+        let _ = self.printer.print(msg.as_ref().to_string());
+    }
+
+    #[inline]
+    pub fn errln(&mut self, msg: impl AsRef<str>) {
+        if self.is_terminal {
+            let _ = self.printer.print(format!("\x1b[31m{}\x1b[0m\n", msg.as_ref()));
+        } else {
+            let _ = self.printer.print(format!("{}\n", msg.as_ref()));
+        }
+    }
+
+    #[inline]
+    pub fn err(&mut self, msg: impl AsRef<str>) {
+        if self.is_terminal {
+            let _ = self.printer.print(format!("\x1b[31m{}\x1b[0m", msg.as_ref()));
+        } else {
+            let _ = self.printer.print(format!("{}", msg.as_ref()));
+        }
+    }
+
+    #[inline]
+    pub fn warnln(&mut self, msg: impl AsRef<str>) {
+        if self.is_terminal {
+            let _ = self.printer.print(format!("\x1b[33m{}\x1b[0m\n", msg.as_ref()));
+        } else {
+            let _ = self.printer.print(format!("{}\n", msg.as_ref()));
+        }
+    }
+
+    #[inline]
+    pub fn warn(&mut self, msg: impl AsRef<str>) {
+        if self.is_terminal {
+            let _ = self.printer.print(format!("\x1b[33m{}\x1b[0m", msg.as_ref()));
+        } else {
+            let _ = self.printer.print(format!("{}", msg.as_ref()));
+        }
     }
 }

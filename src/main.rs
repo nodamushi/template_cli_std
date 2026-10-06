@@ -10,6 +10,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cli = cli::Cli::new(prompt)?;
     let printer = cli.get_printer();
+    let mut ext_printer = cli.create_external_printer()?;
+
+    std::thread::spawn(move || {
+        loop {
+            ext_printer.println("Foo");
+            ext_printer.errln("Bar");
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    });
 
     // --------------  Example: Simple command processing ----------------------------------------------
     while let Some((cmd, args)) = cli.readline() {
