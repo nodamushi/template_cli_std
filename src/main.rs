@@ -10,6 +10,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cli = cli::Cli::new(prompt)?;
     let printer = cli.get_printer();
+
+    // --------------  Example: multi thread  ----------------------------------------------------------
     let mut ext_printer = cli.create_external_printer()?;
 
     std::thread::spawn(move || {
